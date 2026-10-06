@@ -263,43 +263,7 @@ class RoutineViewModel(
             val period =
                 RoutineJalali.currentPeriod(type)
 
-            val existing =
-                routineDao.getExistingRoutine(
-                    taskId = task.id,
-                    type = type.value,
-                    startDate = period.first,
-                    endDate = period.second
-                )
-
-            if (existing != null) {
-
-                if (!existing.enabled) {
-
-                    routineDao.updateEnabled(
-                        routineId = existing.id,
-                        enabled = true
-                    )
-
-                    generateDailyPlans(
-                        task = task,
-                        routine = existing.copy(
-                            enabled = true
-                        )
-                    )
-
-                    _message.value =
-                        "روتین دوباره فعال شد."
-
-                } else {
-
-                    _message.value =
-                        "این روتین از قبل فعال است."
-                }
-
-                load()
-                return@launch
-            }
-
+            
             val routine = Routine(
                 taskId = task.id,
                 type = type.value,
