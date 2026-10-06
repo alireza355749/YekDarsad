@@ -47,7 +47,7 @@ import com.example.yekdarsad.data.sync.SyncConflict
         SyncConflict::class,
         Routine::class
     ],
-    version = 29,
+    version = 30,
     exportSchema = false
 )
 @TypeConverters(NutritionConverters::class)
@@ -85,7 +85,6 @@ abstract class AppDatabase : RoomDatabase() {
                         CREATE TABLE IF NOT EXISTS sync_conflicts (
                             id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                             entityType TEXT NOT NULL,
-                            entityId TEXT NOT NULL,
                             baseSnapshot TEXT NOT NULL,
                             localSnapshot TEXT NOT NULL,
                             remoteSnapshot TEXT NOT NULL,
@@ -266,6 +265,22 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        private val MIGRATION_29_30 =
+            object : Migration(29, 30) {
+
+                override fun migrate(
+                    database: SupportSQLiteDatabase
+                ) {
+
+                    database.execSQL(
+                        """
+                        ALTER TABLE routines
+                        ADD COLUMN durationMinutes INTEGER NOT NULL DEFAULT 0
+                        """.trimIndent()
+                    )
+                }
+            }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
 
@@ -282,7 +297,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_25_26,
                         MIGRATION_26_27,
                         MIGRATION_27_28,
-                        MIGRATION_28_29
+                        MIGRATION_28_29,
+                        MIGRATION_29_30
                     )
                     .fallbackToDestructiveMigration()
                     .build()
