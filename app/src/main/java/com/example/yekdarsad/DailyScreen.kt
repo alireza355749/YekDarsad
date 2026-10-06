@@ -1,5 +1,6 @@
 package com.example.yekdarsad
 
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,18 +24,31 @@ fun DailyScreen() {
 
     val context = LocalContext.current
 
-    val database = DatabaseProvider.getDatabase(context)
+
+    val database =
+        DatabaseProvider.getDatabase(context)
 
 
-    val viewModel: DailyPlanViewModel = viewModel(
-        factory = DailyPlanViewModelFactory(
-            database.dailyPlanDao(),
-            database.taskDao()
+
+    val viewModel: DailyPlanViewModel =
+        viewModel(
+
+            factory =
+                DailyPlanViewModelFactory(
+
+                    database.dailyPlanDao(),
+
+                    database.taskDao()
+
+                )
+
         )
-    )
 
 
-    val today = LocalDate.now().toString()
+
+    val today =
+        LocalDate.now().toString()
+
 
 
     val plans by viewModel
@@ -54,18 +68,22 @@ fun DailyScreen() {
     ) {
 
 
+
         Text(
 
             text = "برنامه امروز",
 
-            style = MaterialTheme.typography.headlineMedium
+            style =
+                MaterialTheme.typography.headlineMedium
 
         )
 
 
+
         Spacer(
 
-            modifier = Modifier.height(20.dp)
+            modifier =
+                Modifier.height(20.dp)
 
         )
 
@@ -75,11 +93,15 @@ fun DailyScreen() {
 
 
             Text(
-                text = "برنامه‌ای برای امروز ثبت نشده"
+
+                text =
+                    "برنامه‌ای برای امروز ثبت نشده"
+
             )
 
 
         } else {
+
 
 
             LazyColumn {
@@ -88,82 +110,109 @@ fun DailyScreen() {
                 items(plans) { item ->
 
 
+
                     Card(
 
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(5.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(5.dp)
 
                     ) {
 
 
+
                         Row(
 
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(15.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(15.dp),
 
-                            horizontalArrangement = Arrangement.SpaceBetween
+
+                            horizontalArrangement =
+                                Arrangement.SpaceBetween
 
                         ) {
+
 
 
                             Column {
 
 
+
                                 Text(
 
-                                    text = item.task.title,
+                                    text =
+                                        item.task.title,
 
-                                    style = MaterialTheme.typography.titleMedium
+                                    style =
+                                        MaterialTheme.typography.titleMedium
 
                                 )
+
 
 
                                 Spacer(
 
-                                    modifier = Modifier.height(5.dp)
+                                    modifier =
+                                        Modifier.height(5.dp)
 
                                 )
+
 
 
                                 Text(
 
-                                    text = "${item.dailyPlan.plannedMinutes} دقیقه"
+                                    text =
+                                        "${item.dailyPlan.plannedMinutes} دقیقه"
 
                                 )
+
 
 
                             }
 
 
 
+
                             Row {
+
 
 
                                 Checkbox(
 
-                                    checked = item.dailyPlan.completed,
+
+                                    checked =
+                                        item.dailyPlan.completed,
+
+
 
                                     onCheckedChange = {
 
+
                                         viewModel.toggleCompleted(
 
-                                            item.dailyPlan.id,
+                                            item,
 
                                             it
 
                                         )
 
+
                                     }
+
 
                                 )
 
 
 
+
                                 IconButton(
 
+
                                     onClick = {
+
 
                                         viewModel.deletePlan(
 
@@ -171,16 +220,22 @@ fun DailyScreen() {
 
                                         )
 
+
                                     }
+
 
                                 ) {
 
 
+
                                     Icon(
 
-                                        imageVector = Icons.Default.Delete,
+                                        imageVector =
+                                            Icons.Default.Delete,
 
-                                        contentDescription = "Delete"
+
+                                        contentDescription =
+                                            "Delete"
 
                                     )
 
@@ -188,25 +243,40 @@ fun DailyScreen() {
                                 }
 
 
+
                             }
+
+
 
 
                         }
 
 
+
+
                     }
+
+
 
 
                 }
 
 
+
+
             }
+
+
 
 
         }
 
 
+
+
     }
+
+
 
 
 }

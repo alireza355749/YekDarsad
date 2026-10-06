@@ -1,11 +1,16 @@
 package com.example.yekdarsad.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ShoppingBasket
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,68 +22,85 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun PlanningPreviewCard(
-
-    totalMinutes: Int
-
+    totalMinutes: Int,
+    onClick: () -> Unit = {}
 ) {
 
     Card(
-
         modifier = Modifier
-            .fillMaxWidth(),
-
-        shape = RoundedCornerShape(28.dp),
-
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent
         )
-
     ) {
 
-        Box(
-
+        Row(
             modifier = Modifier
+                .fillMaxWidth()
                 .background(
-
-                    Brush.linearGradient(
-
+                    Brush.horizontalGradient(
                         listOf(
-
                             Color(0xFFFFFCF5),
-
                             Color(0xFFF7F3E8)
-
                         )
-
                     )
-
                 )
-
-                .padding(20.dp)
-
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
-            Row(
+            Column {
 
-                modifier = Modifier.fillMaxWidth(),
+                Text(
+                    text = "برنامه امروز",
+                    style = MaterialTheme.typography.titleLarge
+                )
 
-                horizontalArrangement = Arrangement.SpaceBetween,
+                Spacer(
+                    modifier = Modifier.height(4.dp)
+                )
 
-                verticalAlignment = Alignment.CenterVertically
+                Text(
+                    text = "$totalMinutes دقیقه",
+                    color = Color.Gray
+                )
 
+            }
+
+            Box(
+                contentAlignment = Alignment.TopEnd
             ) {
 
-                PlanningSummary(
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(
+                            Color(0xFF7A9A6D),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
 
-                    totalMinutes = totalMinutes
+                    Icon(
+                        imageVector = Icons.Outlined.ShoppingBasket,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
 
-                )
+                }
 
-                DayEnergyRing(
+                if (totalMinutes > 0) {
 
-                    totalMinutes = totalMinutes
+                    Badge {
 
-                )
+                        Text(totalMinutes.toString())
+
+                    }
+
+                }
 
             }
 

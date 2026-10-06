@@ -9,10 +9,22 @@ import kotlinx.coroutines.flow.Flow
 interface DailyTaskDao {
 
     @Insert
-    suspend fun insert(dailyTask: DailyTask)
+    suspend fun insert(
+        dailyTask: DailyTask
+    )
 
-
-    @Query("SELECT * FROM daily_tasks ORDER BY id DESC")
+    @Query(
+        "SELECT * FROM daily_tasks ORDER BY id DESC"
+    )
     fun getAll(): Flow<List<DailyTask>>
 
+    @Query(
+        """
+        DELETE FROM daily_tasks
+        WHERE taskId = :taskId
+        """
+    )
+    suspend fun deleteByTaskId(
+        taskId: Int
+    )
 }

@@ -1,48 +1,68 @@
 package com.example.yekdarsad.ui.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.yekdarsad.data.DailyPlanWithTask
-
 
 @Composable
 fun DailyPlanCard(
-    item: DailyPlanWithTask,
-    onCheckedChange: (Boolean) -> Unit,
-    onDeleteClick: () -> Unit,
-    onProgressSave: (Int) -> Unit,
-    onTimeClick: () -> Unit
-) {
 
+    item: DailyPlanWithTask,
+
+    number: Int,
+
+    modifier: Modifier = Modifier,
+
+    dragModifier: Modifier = Modifier,
+
+    locked: Boolean = false,
+
+    displayChecked: Boolean? = null,
+
+    // =========================================
+    // اولویت فقط نمایشی
+    // =========================================
+
+    isPriority: Boolean = false,
+
+    onCheckedChange: (Boolean) -> Unit,
+
+    onTimeClick: () -> Unit,
+
+    onDeleteClick: () -> Unit,
+
+    onProgressSave: (Int) -> Unit
+
+) {
 
     Card(
 
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp),
+            .height(38.dp),
 
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(10.dp),
 
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFFFDF5)
+
+            containerColor =
+                if (locked)
+                    Color(0xFFD0D0D0)
+                else
+                    Color(0xFFDDE8C8)
+
         ),
 
         elevation = CardDefaults.cardElevation(
@@ -51,123 +71,203 @@ fun DailyPlanCard(
 
     ) {
 
-
         Row(
 
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 10.dp,
-                    vertical = 2.dp
-                ),
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
 
-            horizontalArrangement = Arrangement.SpaceBetween,
-
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment =
+                Alignment.CenterVertically
 
         ) {
 
+            Text(
 
+                text =
+                    number.toString(),
+
+                style =
+                    MaterialTheme
+                        .typography
+                        .labelSmall,
+
+                color =
+                    if (locked)
+                        Color.Gray
+                    else
+                        Color(0xFF6F7868)
+
+            )
+
+            Spacer(
+                modifier = Modifier.width(6.dp)
+            )
+
+            // =========================================
+            // Checkbox
+            // =========================================
+
+            Checkbox(
+
+                checked =
+                    displayChecked
+                        ?: item.dailyPlan.completed,
+
+                enabled =
+                    !locked,
+
+                onCheckedChange = {
+
+                    if (!locked) {
+                        onCheckedChange(it)
+                    }
+
+                },
+
+                modifier =
+                    Modifier.size(30.dp)
+
+            )
+
+            Spacer(
+                modifier = Modifier.width(8.dp)
+            )
+
+            // =========================================
+            // Task
+            // =========================================
 
             Column(
 
-                modifier = Modifier
-                    .weight(1f)
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clickable(
+                            enabled =
+                                !locked &&
+                                        item.task.type == "TIME"
+                        ) {
+
+                            if (!locked) {
+                                onTimeClick()
+                            }
+
+                        },
+
+                verticalArrangement =
+                    Arrangement.Center
 
             ) {
-
 
                 Text(
 
-                    text = item.task.title,
+                    text =
+                        item.task.title,
 
-                    style = MaterialTheme.typography.bodyLarge
+                    style =
+                        MaterialTheme
+                            .typography
+                            .bodySmall,
+
+                    maxLines = 1,
+
+                    overflow =
+                        TextOverflow.Clip,
+
+                    color =
+                        if (locked)
+                            Color.DarkGray
+                        else
+                            Color(0xFF354D2E)
 
                 )
-
-
 
                 if (item.task.type == "TIME") {
 
-
                     Text(
 
-                        text = "${item.dailyPlan.actualMinutes}/${item.dailyPlan.plannedMinutes} دقیقه",
+                        text =
+                            "${item.dailyPlan.actualMinutes}/${item.dailyPlan.plannedMinutes} دقیقه",
 
-                        style = MaterialTheme.typography.bodySmall,
+                        style =
+                            MaterialTheme
+                                .typography
+                                .labelSmall
+                                .copy(
+                                    fontSize = 10.sp
+                                ),
 
-                        color = Color.Gray
+                        color =
+                            if (locked)
+                                Color.Gray
+                            else
+                                Color(0xFF8A8F82)
 
                     )
 
-
                 }
-
 
             }
 
+            // =========================================
+            // پرچم اولویت
+            //
+            // فقط نمایش داده می‌شود
+            // هیچ clickable ندارد
+            // =========================================
 
+            if (isPriority) {
 
-            Row(
+                Icon(
 
-                verticalAlignment = Alignment.CenterVertically
+                    imageVector =
+                        Icons.Default.Flag,
 
-            ) {
+                    contentDescription =
+                        "اولویت بالا",
 
+                    modifier =
+                        Modifier.size(18.dp),
 
-                Checkbox(
-
-                    checked = item.dailyPlan.completed,
-
-                    onCheckedChange = {
-
-                        if (item.task.type == "TIME") {
-
-                            onTimeClick()
-
-                        } else {
-
-                            onCheckedChange(it)
-
-                        }
-
-                    }
+                    tint =
+                        Color(0xFFD67B3C)
 
                 )
 
-
-
-                IconButton(
-
-                    onClick = onDeleteClick,
-
-                    modifier = Modifier.padding(0.dp)
-
-                ) {
-
-
-                    Icon(
-
-                        imageVector = Icons.Default.Delete,
-
-                        contentDescription = null,
-
-                        tint = Color.Gray
-
-                    )
-
-
-                }
-
+                Spacer(
+                    modifier =
+                        Modifier.width(5.dp)
+                )
 
             }
 
+            // =========================================
+            // Drag Icon
+            // =========================================
 
+            Icon(
+
+                imageVector =
+                    Icons.Default.Menu,
+
+                contentDescription =
+                    null,
+
+                modifier =
+                    dragModifier
+                        .size(20.dp),
+
+                tint =
+                    if (locked)
+                        Color.Gray
+                    else
+                        Color(0xFF8D9780)
+
+            )
 
         }
 
-
     }
-
 
 }

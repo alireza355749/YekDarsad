@@ -1,21 +1,34 @@
 package com.example.yekdarsad
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.material3.SnackbarHostState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.yekdarsad.data.Category
 import com.example.yekdarsad.data.DatabaseProvider
 import com.example.yekdarsad.viewmodel.ActivitiesViewModel
 import com.example.yekdarsad.viewmodel.ActivitiesViewModelFactory
+import com.example.yekdarsad.viewmodel.PlanningViewModel
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ActivitiesScreen(
-    onCategoryClick: (Int, String, String) -> Unit
+    planningViewModel: PlanningViewModel,
+
+    // اجازه برنامه‌ریزی برای روزهای گذشته
+    allowPastPlanning: Boolean,
+
+    onCategoryClick: (Int, String, String) -> Unit,
+
+    // ورود به صفحه برنامه‌ریزی روتین
+    onRoutinePlanningClick: () -> Unit
 ) {
 
     val context = LocalContext.current
@@ -24,13 +37,20 @@ fun ActivitiesScreen(
         DatabaseProvider.getDatabase(context)
     }
 
-    val activitiesViewModel: ActivitiesViewModel = viewModel(
-        factory = ActivitiesViewModelFactory(
-            database.categoryDao()
+    val activitiesViewModel: ActivitiesViewModel =
+        viewModel(
+            factory = ActivitiesViewModelFactory(
+                database.categoryDao(),
+                database.taskDao(),
+                database.activityDurationDao(),
+                database.dailyTaskDao(),
+                database.dailyPlanDao()
+            )
         )
-    )
 
-    val categories by activitiesViewModel.categories.collectAsState()
+    val categories by activitiesViewModel
+        .categories
+        .collectAsState()
 
     val snackbarHostState = remember {
         SnackbarHostState()
@@ -38,268 +58,212 @@ fun ActivitiesScreen(
 
     val scope = rememberCoroutineScope()
 
-
-    var selectedDate by remember {
-        mutableStateOf(LocalDate.now())
-    }
-
-
     var categoryToDelete by remember {
         mutableStateOf<Category?>(null)
     }
-
-
-    var showDateMenu by remember {
-        mutableStateOf(false)
-    }
-
 
     var showCalendar by remember {
         mutableStateOf(false)
     }
 
-
-    var showCategorySheet by remember {
-        mutableStateOf(false)
-    }
-
-
     var showCustomCategoryDialog by remember {
         mutableStateOf(false)
     }
-
 
     var customCategoryName by remember {
         mutableStateOf("")
     }
 
+    val selectedDate =
+        planningViewModel.selectedDate
 
+    // =====================================================
+    // صفحه اصلی برنامه‌ریزی
+    // =====================================================
 
-    ActivitiesContent(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
 
-        categories = categories,
+        ActivitiesContent(
 
-        selectedDate = selectedDate,
+            categories = categories,
 
-        showDateMenu = showDateMenu,
+            selectedDate = selectedDate,
 
+            planningViewModel = planningViewModel,
 
-        onShowDateMenuChange = {
+            // مهم:
+            // مقدار فعال/غیرفعال بودن برنامه‌ریزی روز گذشته
+            allowPastPlanning = allowPastPlanning,
 
-            showDateMenu = it
+            onCategoryClick = { category ->
 
-        },
+                onCategoryClick(
+                    category.id,
+                    category.name,
+                    selectedDate.toString()
+                )
+            },
 
+            onCategoryLongClick = { category ->
 
-        onTodayClick = {
+                categoryToDelete = category
+            },
 
-            selectedDate = LocalDate.now()
-            showDateMenu = false
+            onDateClick = {
 
-        },
+                showCalendar = true
+            },
 
+            onAddCategory = { name, icon ->
 
-        onTomorrowClick = {
+                if (
+                    categories.any {
+                        it.name == name
+                    }
+                ) {
 
-            selectedDate = LocalDate.now().plusDays(1)
-            showDateMenu = false
+                    scope.launch {
 
-        },
+                        snackbarHostState.showSnackbar(
+                            "این دسته قبلاً ایجاد شده است"
+                        )
+                    }
 
+                } else {
 
-        onCalendarClick = {
+                    activitiesViewModel.addCategory(
+                        name = name,
+                        icon = icon
+                    ) { newCategory ->
 
-            showDateMenu = false
-            showCalendar = true
+                        onCategoryClick(
+                            newCategory.id,
+                            newCategory.name,
+                            selectedDate.toString()
+                        )
+                    }
+                }
+            },
 
-        },
+            onOtherCategoryClick = {
 
+                showCustomCategoryDialog = true
+            },
 
-        onAddClick = {
+            onRoutinePlanningClick = {
 
-            showCategorySheet = true
+                onRoutinePlanningClick()
+            }
+        )
 
-        },
+        // =====================================================
+        // BottomSheets / Dialogs
+        // =====================================================
 
+        ActivitiesBottomSheets(
 
-        onCategoryClick = {
+            categories = categories,
 
-                category ->
+            snackbarHostState = snackbarHostState,
 
-            onCategoryClick(
-                category.id,
-                category.name,
-                selectedDate.toString()
-            )
+            scope = scope,
 
-        },
+            viewModel = activitiesViewModel,
 
+            showCalendar = showCalendar,
 
-        onCategoryLongClick = {
+            selectedDate = selectedDate,
 
-            categoryToDelete = it
+            onDateSelected = {
 
-        }
+                planningViewModel.selectCustomDate(it)
 
-    )
+                showCalendar = false
+            },
 
+            onCalendarDismiss = {
 
+                showCalendar = false
+            },
 
-    ActivitiesBottomSheets(
+            showCategorySheet = false,
 
-        categories = categories,
+            onCategorySheetDismiss = {},
 
-        snackbarHostState = snackbarHostState,
+            onAddCategory = { _, _ -> },
 
-        scope = scope,
+            onOtherCategoryClick = {
 
-        viewModel = activitiesViewModel,
+                showCustomCategoryDialog = true
+            },
 
+            categoryToDelete = categoryToDelete,
 
-        showCalendar = showCalendar,
+            onDeleteDismiss = {
 
-        selectedDate = selectedDate,
+                categoryToDelete = null
+            },
 
+            onDeleteConfirm = {
 
-        onDateSelected = {
+                categoryToDelete?.let { category ->
 
-            selectedDate = it
-            showCalendar = false
-
-        },
-
-
-        onCalendarDismiss = {
-
-            showCalendar = false
-
-        },
-
-
-        showCategorySheet = showCategorySheet,
-
-
-        onCategorySheetDismiss = {
-
-            showCategorySheet = false
-
-        },
-
-
-        onAddCategory = {
-
-                name,
-                icon ->
-
-
-            if (categories.any { it.name == name }) {
-
-
-                scope.launch {
-
-                    snackbarHostState.showSnackbar(
-                        "این دسته قبلاً ایجاد شده است"
+                    activitiesViewModel.deleteCategory(
+                        category
                     )
-
                 }
 
+                categoryToDelete = null
+            },
 
-            } else {
+            showCustomCategoryDialog =
+                showCustomCategoryDialog,
 
+            customCategoryName =
+                customCategoryName,
 
-                activitiesViewModel.addCategory(
-                    name,
-                    icon
-                )
+            onCustomCategoryNameChange = {
 
-                showCategorySheet = false
+                customCategoryName = it
+            },
 
-            }
-
-
-        },
-
-
-        onOtherCategoryClick = {
-
-            showCategorySheet = false
-            showCustomCategoryDialog = true
-
-        },
-
-
-        categoryToDelete = categoryToDelete,
-
-
-        onDeleteDismiss = {
-
-            categoryToDelete = null
-
-        },
-
-
-        onDeleteConfirm = {
-
-
-            categoryToDelete?.let {
-
-                activitiesViewModel.deleteCategory(it)
-
-            }
-
-
-            categoryToDelete = null
-
-
-        },
-
-
-        showCustomCategoryDialog = showCustomCategoryDialog,
-
-
-        customCategoryName = customCategoryName,
-
-
-        onCustomCategoryNameChange = {
-
-            customCategoryName = it
-
-        },
-
-
-        onCustomDismiss = {
-
-            showCustomCategoryDialog = false
-            customCategoryName = ""
-
-        },
-
-
-        onCreateCustomCategory = {
-
-
-            if (customCategoryName.isNotBlank()) {
-
-
-                activitiesViewModel.addCategory(
-
-                    customCategoryName,
-
-                    "📌"
-
-                )
-
-
-                customCategoryName = ""
+            onCustomDismiss = {
 
                 showCustomCategoryDialog = false
 
+                customCategoryName = ""
+            },
 
+            onCreateCustomCategory = {
+
+                if (
+                    customCategoryName.isNotBlank()
+                ) {
+
+                    val name =
+                        customCategoryName.trim()
+
+                    activitiesViewModel.addCategory(
+                        name = name,
+                        icon = "📌"
+                    ) { newCategory ->
+
+                        customCategoryName = ""
+
+                        showCustomCategoryDialog = false
+
+                        onCategoryClick(
+                            newCategory.id,
+                            newCategory.name,
+                            selectedDate.toString()
+                        )
+                    }
+                }
             }
-
-
-        }
-
-    )
-
+        )
+    }
 }

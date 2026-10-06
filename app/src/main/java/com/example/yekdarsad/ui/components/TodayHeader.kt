@@ -2,17 +2,14 @@ package com.example.yekdarsad.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.yekdarsad.getDisplayDate
 import java.time.LocalDate
-import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 @Composable
 fun TodayHeader(
@@ -23,57 +20,102 @@ fun TodayHeader(
     onDateClick: () -> Unit
 ) {
 
-    Text(
-        text = "برنامه امروز",
-        style = MaterialTheme.typography.headlineMedium
-    )
+    val today = LocalDate.now()
 
-    Spacer(
-        modifier = Modifier.height(15.dp)
-    )
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    val dayText = when (
+        ChronoUnit.DAYS.between(today, selectedDate)
     ) {
 
-        IconButton(
-            onClick = onPreviousDay
-        ) {
-            Text("◀")
-        }
+        0L -> "امروز"
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        1L -> "فردا"
 
-            Text(
-                text = getDisplayDate(selectedDate),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.clickable {
-                    onDateClick()
-                }
-            )
+        2L -> "پس فردا"
 
-            TextButton(
-                onClick = onTodayClick
-            ) {
-                Text("امروز")
-            }
+        -1L -> "دیروز"
 
-        }
+        -2L -> "پریروز"
 
-        IconButton(
-            onClick = onNextDay
-        ) {
-            Text("▶")
-        }
-
+        else -> ""
     }
 
-    Spacer(
-        modifier = Modifier.height(10.dp)
-    )
+    Column {
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            IconButton(
+                onClick = onPreviousDay
+            ) {
+
+                Text(
+                    text = "‹",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                Text(
+                    text = getDisplayDate(selectedDate),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.clickable {
+                        onDateClick()
+                    }
+                )
+
+                // ارتفاع ثابت برای جلوگیری از جابه‌جایی UI
+                Box(
+                    modifier = Modifier.height(36.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    if (dayText.isNotEmpty()) {
+
+                        TextButton(
+                            onClick = {
+
+                                if (selectedDate != today) {
+                                    onTodayClick()
+                                }
+
+                            }
+                        ) {
+
+                            Text(
+                                text = dayText,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+
+                    } else {
+
+                        // فقط فضا را حفظ می‌کند
+                        Spacer(
+                            modifier = Modifier.height(36.dp)
+                        )
+                    }
+                }
+            }
+
+            IconButton(
+                onClick = onNextDay
+            ) {
+
+                Text(
+                    text = "›",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+            }
+        }
+
+        Spacer(
+            modifier = Modifier.height(10.dp)
+        )
+    }
 }
