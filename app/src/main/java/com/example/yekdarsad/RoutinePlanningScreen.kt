@@ -71,6 +71,18 @@ import kotlinx.coroutines.launch
 private val RoutineTextPrimary = Color(0xFF252525)
 private val RoutineTextSecondary = Color(0xFF777777)
 
+private val RoutineDurationOptions =
+    listOf(
+        15,
+        30,
+        45,
+        60,
+        75,
+        90,
+        105,
+        120
+    )
+
 private data class RoutineCategoryStyle(
     val background: Color,
     val iconBackground: Color,
@@ -243,7 +255,8 @@ class RoutineViewModel(
 
     fun addRoutine(
         task: Task,
-        type: RoutineType
+        type: RoutineType,
+        durationMinutes: Int
     ) {
         viewModelScope.launch {
 
@@ -292,6 +305,12 @@ class RoutineViewModel(
                 type = type.value,
                 startDate = period.first,
                 endDate = period.second,
+                durationMinutes =
+                    if (task.type == "TIME") {
+                        durationMinutes
+                    } else {
+                        0
+                    },
                 enabled = true,
                 showInOverview = true,
                 deleted = false
@@ -447,7 +466,7 @@ class RoutineViewModel(
 
             val plannedMinutes =
                 if (task.type == "TIME") {
-                    30
+                    routine.durationMinutes
                 } else {
                     0
                 }
@@ -643,10 +662,12 @@ fun RoutinePlanningScreen(
                                     category.id
                                 }
                         },
-                        onAddRoutine = {
+                        onAddRoutine = { task, type, duration ->
+
                             viewModel.addRoutine(
-                                task = it.first,
-                                type = it.second
+                                task = task,
+                                type = type,
+                                durationMinutes = duration
                             )
                         }
                     )
@@ -884,7 +905,7 @@ private fun RoutineCategoryCard(
     tasks: List<Task>,
     expanded: Boolean,
     onClick: () -> Unit,
-    onAddRoutine: (Pair<Task, RoutineType>) -> Unit
+    onAddRoutine: (Task, RoutineType, Int) -> Unit
 ) {
     val style =
         routineCategoryStyle(category.name)
@@ -1012,18 +1033,7 @@ private fun RoutineCategoryCard(
                             RoutineTaskRow(
                                 task = task,
                                 style = style,
-                                onAddWeekly = {
-                                    onAddRoutine(
-                                        task to
-                                                RoutineType.WEEKLY
-                                    )
-                                },
-                                onAddMonthly = {
-                                    onAddRoutine(
-                                        task to
-                                                RoutineType.MONTHLY
-                                    )
-                                }
+                                onAddRoutine = onAddRoutine
                             )
                         }
                     }
@@ -1037,9 +1047,27 @@ private fun RoutineCategoryCard(
 private fun RoutineTaskRow(
     task: Task,
     style: RoutineCategoryStyle,
-    onAddWeekly: () -> Unit,
-    onAddMonthly: () -> Unit
+    onAddRoutine: (Task, RoutineType, Int) -> Unit
 ) {
+    var selectedDuration by remember(
+        task.id
+    ) {
+        mutableStateOf<Int?>(null)
+    }
+
+    var durationMenuExpanded by remember(
+        task.id
+    ) {
+        mutableStateOf(false)
+    }
+
+    val isTimeTask =
+        task.type == "TIME"
+
+    val canAddRoutine =
+        !isTimeTask ||
+                selectedDuration != null
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1065,8 +1093,97 @@ private fun RoutineTaskRow(
                 RoutineTextPrimary
         )
 
+        if (isTimeTask) {
+
+            Spacer(
+                modifier = Modifier.height(7.dp)
+            )
+
+            Box(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(38.dp)
+                        .clip(
+                            RoundedCornerShape(9.dp)
+                        )
+                        .background(
+                            Color.White
+                        )
+                        .clickable {
+                            durationMenuExpanded = true
+                        }
+                        .padding(
+                            horizontal = 11.dp
+                        ),
+                    verticalAlignment =
+                        Alignment.CenterVertically
+                ) {
+
+                    Text(
+                        text =
+                            if (selectedDuration == null) {
+                                "انتخاب مدت زمان"
+                            } else {
+                                "مدت زمان: ${selectedDuration} دقیقه"
+                            },
+                        modifier = Modifier.weight(1f),
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        fontWeight =
+                            FontWeight.Medium,
+                        color =
+                            if (selectedDuration == null) {
+                                RoutineTextSecondary
+                            } else {
+                                style.accent
+                            }
+                    )
+
+                    Text(
+                        text = "▾",
+                        style =
+                            MaterialTheme.typography.titleMedium,
+                        color =
+                            style.accent
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = durationMenuExpanded,
+                    onDismissRequest = {
+                        durationMenuExpanded = false
+                    }
+                ) {
+
+                    RoutineDurationOptions.forEach { minutes ->
+
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text =
+                                        "$minutes دقیقه"
+                                )
+                            },
+                            onClick = {
+
+                                selectedDuration =
+                                    minutes
+
+                                durationMenuExpanded =
+                                    false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
         Spacer(
-            modifier = Modifier.height(6.dp)
+            modifier = Modifier.height(7.dp)
         )
 
         Row(
@@ -1076,17 +1193,57 @@ private fun RoutineTaskRow(
 
             RoutineTypeButton(
                 text = "هفتگی",
-                color = style.accent,
-                lightColor = style.background,
-                onClick = onAddWeekly,
+                color =
+                    if (canAddRoutine) {
+                        style.accent
+                    } else {
+                        Color(0xFFB7BDC5)
+                    },
+                lightColor =
+                    if (canAddRoutine) {
+                        style.background
+                    } else {
+                        Color(0xFFECEEF1)
+                    },
+                onClick = {
+
+                    if (canAddRoutine) {
+
+                        onAddRoutine(
+                            task,
+                            RoutineType.WEEKLY,
+                            selectedDuration ?: 0
+                        )
+                    }
+                },
                 modifier = Modifier.weight(1f)
             )
 
             RoutineTypeButton(
                 text = "ماهانه",
-                color = style.accent,
-                lightColor = style.background,
-                onClick = onAddMonthly,
+                color =
+                    if (canAddRoutine) {
+                        style.accent
+                    } else {
+                        Color(0xFFB7BDC5)
+                    },
+                lightColor =
+                    if (canAddRoutine) {
+                        style.background
+                    } else {
+                        Color(0xFFECEEF1)
+                    },
+                onClick = {
+
+                    if (canAddRoutine) {
+
+                        onAddRoutine(
+                            task,
+                            RoutineType.MONTHLY,
+                            selectedDuration ?: 0
+                        )
+                    }
+                },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -1236,6 +1393,19 @@ private fun RoutineListItem(
                         color = style.accent,
                         lightColor = style.background
                     )
+
+                    if (
+                        task.type == "TIME" &&
+                        routine.durationMinutes > 0
+                    ) {
+
+                        RoutineBadge(
+                            text =
+                                "${routine.durationMinutes} دقیقه",
+                            color = style.accent,
+                            lightColor = style.background
+                        )
+                    }
 
                     if (!routine.enabled) {
 
