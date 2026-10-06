@@ -263,7 +263,7 @@ class RoutineViewModel(
             val period =
                 RoutineJalali.currentPeriod(type)
 
-            
+
             val routine = Routine(
                 taskId = task.id,
                 type = type.value,
